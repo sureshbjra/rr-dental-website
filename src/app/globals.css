@@ -1,0 +1,256 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+/* Phones / tablets tall enough for the pinned full-screen scroll scenes (see MQ.mobileTall in lib/gsap). */
+@custom-variant tall (@media (max-width: 1023px) and (min-height: 700px));
+
+/* ==========================================================================
+   RR Dental — "Scan room" design system
+   One family (Archivo Variable) driven through its width axis:
+   expanded 125% light for display, 100% for reading, 112% for UI.
+   Signal cyan is reserved for the scan motif, focus and the primary action.
+   ========================================================================== */
+
+:root {
+  --brand-navy: #071b35; /* Abyss — dark chapters */
+  --brand-ocean: #0b3159; /* Deep — raised panels */
+  --brand-cyan: #38bdf8; /* Signal — scan line, focus, primary action */
+  --brand-ice: #a7ddff; /* Ice — secondary text & diagrams on dark */
+  --brand-white: #ffffff;
+  --brand-mist: #eff8ff; /* Mist — light chapter, primary text on dark */
+
+  --radius: 1.25rem;
+
+  /* shadcn semantic tokens */
+  --background: var(--brand-navy);
+  --foreground: var(--brand-mist);
+  --card: var(--brand-ocean);
+  --card-foreground: var(--brand-mist);
+  --popover: var(--brand-ocean);
+  --popover-foreground: var(--brand-mist);
+  --primary: var(--brand-cyan);
+  --primary-foreground: var(--brand-navy);
+  --secondary: var(--brand-ocean);
+  --secondary-foreground: var(--brand-mist);
+  --muted: #0d2a4c;
+  --muted-foreground: #9db8d3;
+  --accent: var(--brand-ice);
+  --accent-foreground: var(--brand-navy);
+  --destructive: #f87171;
+  --border: rgb(167 221 255 / 0.13);
+  --input: rgb(167 221 255 / 0.2);
+  --ring: var(--brand-cyan);
+
+  /* Layout rhythm */
+  --gutter: clamp(1.25rem, 4vw, 3.5rem);
+  --section: clamp(6rem, 13vw, 12rem);
+}
+
+@theme inline {
+  --color-navy: var(--brand-navy);
+  --color-ocean: var(--brand-ocean);
+  --color-cyan: var(--brand-cyan);
+  --color-ice: var(--brand-ice);
+  --color-mist: var(--brand-mist);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 8px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 8px);
+
+  --font-sans: var(--font-archivo), "Archivo Variable", system-ui, sans-serif;
+
+  /* Fluid type scale (ratio ≈ 1.333 at mobile → ~1.6 at desktop for display) */
+  --text-display-xl: clamp(3.1rem, 8.4vw, 8.1rem); /* cap matches the 96rem shell: no overflow on wide screens */
+  --text-display-xl--line-height: 0.9;
+  --text-display-xl--letter-spacing: -0.045em;
+  /* Desktop hero headline. The tooth beside it is sized by the hero's HEIGHT (vertical camera
+     FOV), the headline by its WIDTH — so on squarer screens (4:3, 5:4, iPad Pro) a width-only size
+     runs into the crown. The middle term keeps ~3rem between "dentistry," and the tooth at any
+     aspect ratio; measured across 1024×768 → 2560×1440 and 1024×1366. */
+  --text-display-hero: clamp(4.25rem, calc(9.5vw - 1.6svh - 0.4rem), min(8.4vw, 7.8rem));
+  --text-display-hero--line-height: 0.9;
+  --text-display-hero--letter-spacing: -0.045em;
+  --text-display-l: clamp(2.4rem, 5.2vw, 5.75rem);
+  --text-display-l--line-height: 0.95;
+  --text-display-l--letter-spacing: -0.035em;
+  --text-display-s: clamp(2.2rem, 3.7vw, 4.1rem);
+  --text-display-s--line-height: 1;
+  --text-display-s--letter-spacing: -0.03em;
+  --text-display-m: clamp(1.7rem, 2.7vw, 2.75rem);
+  --text-display-m--line-height: 1.04;
+  --text-display-m--letter-spacing: -0.025em;
+  --text-lead: clamp(1.125rem, 1.35vw, 1.375rem);
+  --text-lead--line-height: 1.5;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.65;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.45;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.65;
+    font-feature-settings: "ss01", "tnum" 0;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--brand-cyan);
+    color: var(--brand-navy);
+  }
+  :focus-visible {
+    outline: 2px solid var(--brand-cyan);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  /* On the light chapter cyan is < 3:1 against Mist — use navy there. */
+  .bg-mist :focus-visible {
+    outline-color: var(--brand-navy);
+  }
+}
+
+/* ---------- Typography roles ---------- */
+@utility font-display {
+  font-family: var(--font-sans);
+  font-stretch: 125%;
+  font-weight: 330;
+  font-kerning: normal;
+}
+@utility font-ui {
+  font-family: var(--font-sans);
+  font-stretch: 112%;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+}
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Layout ---------- */
+@utility shell {
+  width: 100%;
+  max-width: 96rem;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+@utility section-y {
+  padding-block: var(--section);
+}
+
+/* ---------- Surfaces ---------- */
+/* Frosted glass — reserved for the nav and the scan readout. */
+@utility glass {
+  background: linear-gradient(160deg, rgb(239 248 255 / 0.09), rgb(239 248 255 / 0.025));
+  border: 1px solid rgb(167 221 255 / 0.14);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+/* Instrument panel — solid, layered depth with a lit top edge. */
+@utility panel {
+  background: linear-gradient(160deg, #0f3864 0%, #0a2647 55%, #081e3a 100%);
+  border: 1px solid rgb(167 221 255 / 0.12);
+  box-shadow:
+    inset 0 1px 0 rgb(239 248 255 / 0.08),
+    0 40px 80px -40px rgb(0 0 0 / 0.75);
+}
+
+@utility glow-cyan {
+  box-shadow: 0 0 0 1px rgb(56 189 248 / 0.4), 0 0 30px -4px rgb(56 189 248 / 0.55);
+}
+
+/* ---------- Animation system ---------- */
+/* Prevent sideways scroll from off-canvas animation layers without breaking position: sticky. */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* Elements GSAP will reveal start hidden — only when JS runs and motion is allowed (see layout.tsx). */
+@media (prefers-reduced-motion: no-preference) {
+  html.js:not(.anim-fallback) [data-animate],
+  html.js:not(.anim-fallback) [data-stagger] {
+    visibility: hidden;
+  }
+}
+
+/* SplitText line masks clip both axes: room for ascenders/descenders and for glyphs that
+   overhang their advance under tight tracking (f, y, a final period). Layout is unchanged. */
+.split-line-mask {
+  padding: 0.12em 0.08em;
+  margin: -0.12em -0.08em;
+}
+
+/* Button label roll: the label slides up and an identical copy rolls in from below. */
+.roll {
+  position: relative;
+  display: inline-flex;
+  overflow: hidden;
+  line-height: 1.2;
+}
+.roll > span {
+  display: block;
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.roll > span::after {
+  content: attr(data-label);
+  position: absolute;
+  left: 0;
+  top: 100%;
+}
+:is(a, button):hover .roll > span,
+:is(a, button):focus-visible .roll > span {
+  transform: translateY(-100%);
+}
+
+/* Underline that draws in from the left */
+@utility link-draw {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  &:hover,
+  &:focus-visible,
+  &[aria-current="page"] {
+    background-size: 100% 1px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
