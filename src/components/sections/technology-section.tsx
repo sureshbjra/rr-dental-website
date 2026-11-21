@@ -86,9 +86,9 @@ export function TechnologySection() {
       };
 
       mm.add(MQ.desktop, () => horizontal(true));
-      mm.add(MQ.mobileTall, () => horizontal(false));
+      mm.add(MQ.phonePin, () => horizontal(false));
 
-      mm.add(MQ.mobileShort, () => {
+      mm.add(MQ.phoneShort, () => {
         // opacity, not visibility: hidden-by-visibility text would also vanish for screen readers
         gsap.set(panels, { opacity: 0, rotateX: -24, y: 50, transformPerspective: 900, transformOrigin: "50% 0%" });
         panels.forEach((p) => gsap.set(strokes(p), { strokeDasharray: 1, strokeDashoffset: 1 }));
@@ -112,19 +112,21 @@ export function TechnologySection() {
     <section ref={root} id="technology" className="relative bg-navy">
       <div
         data-tech-pin
-        className="flex flex-col justify-center section-y lg:motion-safe:h-svh lg:motion-safe:overflow-hidden lg:motion-safe:py-0 tall:motion-safe:h-svh tall:motion-safe:overflow-hidden tall:motion-safe:py-0"
+        className="flex flex-col justify-center section-y lg:motion-safe:h-svh lg:motion-safe:overflow-hidden lg:motion-safe:py-[clamp(1.5rem,7svh,6rem)] phone:motion-safe:h-svh phone:motion-safe:overflow-hidden phone:motion-safe:py-[clamp(1rem,5svh,3rem)]"
       >
-        <div className="shell flex flex-col gap-8 tall:motion-safe:gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <TextReveal as="h2" className="font-display text-display-l">
-              The tools behind the plan
-            </TextReveal>
-            <TextReveal as="p" delay={0.12} className="text-lead mt-6 max-w-[38ch] text-mist/65">
+        {/* Desktop: heading on the left, the line and progress rail on the right (saves height so the
+            whole pinned screen fits, with room above and below, even on short laptop screens). */}
+        <div className="shell flex flex-col gap-8 phone:motion-safe:gap-[min(1.25rem,2.2svh)] lg:flex-row lg:items-end lg:justify-between lg:gap-12">
+          <TextReveal as="h2" className="font-display text-display-l max-w-2xl phone:motion-safe:text-[length:min(10vw,6.2svh)] lg:motion-safe:text-[length:min(5.2vw,8svh,5.75rem)]">
+            Precision powered by technology.
+          </TextReveal>
+          <div className="lg:w-[min(26rem,34vw)] lg:shrink-0 lg:pb-[0.4em]">
+            <TextReveal as="p" delay={0.12} className="text-lead max-w-[38ch] text-mist/65 phone:motion-safe:text-[length:min(1.125rem,2.6svh)]">
               Each one replaces guesswork with a clear picture — for us, and for you.
             </TextReveal>
-          </div>
-          <div aria-hidden className="hidden h-px w-64 shrink-0 bg-mist/15 tall:motion-safe:block tall:motion-safe:w-40 lg:motion-safe:block">
-            <div data-tech-rail className="h-full origin-left bg-cyan shadow-[0_0_10px_rgb(56_189_248/0.8)]" style={{ transform: "scaleX(0)" }} />
+            <div aria-hidden className="mt-5 hidden h-px w-full bg-mist/15 phone:motion-safe:block phone:motion-safe:w-40 lg:motion-safe:block">
+              <div data-tech-rail className="h-full origin-left bg-cyan shadow-[0_0_10px_rgb(56_189_248/0.8)]" style={{ transform: "scaleX(0)" }} />
+            </div>
           </div>
         </div>
 
@@ -133,28 +135,28 @@ export function TechnologySection() {
           className={[
             "mt-12 flex flex-col gap-5 px-[var(--gutter)] will-change-transform",
             // desktop: one sideways rail while it animates; rows that wrap with reduced motion
-            "lg:mt-16 lg:flex-row lg:flex-wrap lg:gap-7 lg:motion-reduce:mx-auto lg:motion-reduce:max-w-[96rem]",
+            "lg:mt-16 lg:flex-row lg:flex-wrap lg:gap-7 lg:motion-safe:mt-[min(4rem,5svh)] lg:motion-reduce:mx-auto lg:motion-reduce:max-w-[96rem]",
             "lg:motion-safe:w-max lg:motion-safe:flex-nowrap lg:motion-safe:pr-[14vw] lg:motion-safe:pl-[max(var(--gutter),calc((100vw-96rem)/2+var(--gutter)))]",
             // tall phones: the same sideways rail
-            "tall:motion-safe:mt-8 tall:motion-safe:w-max tall:motion-safe:flex-row tall:motion-safe:gap-4 tall:motion-safe:pr-[12vw]",
+            "phone:motion-safe:mt-[min(2rem,3.4svh)] phone:motion-safe:w-max phone:motion-safe:flex-row phone:motion-safe:gap-4 phone:motion-safe:pr-[12vw]",
           ].join(" ")}
         >
           {technology.map((t) => (
             <li
               key={t.title}
               data-tech-panel
-              className="tall:motion-safe:w-[min(82vw,24rem)] lg:motion-safe:w-[min(27rem,34vw)] lg:motion-reduce:w-[calc((100%-3.5rem)/3)]"
+              className="phone:motion-safe:w-[min(82vw,24rem)] lg:motion-safe:w-[min(27rem,34vw)] lg:motion-reduce:w-[calc((100%-3.5rem)/3)]"
             >
-              <article data-tech-inner className="panel flex h-full flex-col rounded-[1.75rem] p-7 tall:motion-safe:p-6 sm:p-8">
-                <div className="relative overflow-hidden rounded-2xl border border-mist/[0.07] bg-navy/60 p-5 text-ice/70 tall:motion-safe:p-4">
+              <article data-tech-inner className="panel flex h-full flex-col rounded-[1.75rem] p-7 phone:motion-safe:p-[min(1.5rem,3svh)] sm:p-8 lg:motion-safe:p-[min(2rem,3.4svh)]">
+                <div className="relative overflow-hidden rounded-2xl border border-mist/[0.07] bg-navy/60 p-5 text-ice/70 phone:motion-safe:p-[min(1rem,2svh)] lg:motion-safe:p-[min(1.25rem,2.2svh)]">
                   <div aria-hidden className="absolute inset-0 [background:radial-gradient(18rem_12rem_at_50%_100%,rgb(56_189_248/0.12),transparent_70%)]" />
                   <TechDiagram
                     type={t.diagram}
-                    className="relative mx-auto aspect-[5/4] w-full max-w-[18rem] tall:motion-safe:max-w-[12rem]"
+                    className="relative mx-auto aspect-[5/4] w-full max-w-[18rem] phone:motion-safe:max-w-[min(12rem,20svh)] lg:motion-safe:max-w-[min(18rem,21svh)]"
                   />
                 </div>
-                <h3 className="font-display text-display-m mt-8 tall:motion-safe:mt-5">{t.title}</h3>
-                <p className="mt-4 text-mist/65">{t.text}</p>
+                <h3 className="font-display text-display-m mt-8 phone:motion-safe:mt-[min(1.25rem,2.4svh)] phone:motion-safe:text-[length:min(1.7rem,3.8svh)] lg:motion-safe:mt-[min(2rem,2.8svh)]">{t.title}</h3>
+                <p className="mt-4 text-mist/65 phone:motion-safe:mt-[min(1rem,1.6svh)] phone:motion-safe:text-[length:min(1rem,2.4svh)] lg:motion-safe:mt-[min(1rem,1.8svh)]">{t.text}</p>
               </article>
             </li>
           ))}

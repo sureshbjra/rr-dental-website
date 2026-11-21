@@ -43,7 +43,7 @@ export function LightChapter({ children }: { children: ReactNode }) {
   );
 
   return (
-    <section ref={root} className="relative z-10 bg-mist text-navy [--muted-foreground:rgb(7_27_53/0.62)]">
+    <section id="about" ref={root} className="relative z-10 bg-mist text-navy [--muted-foreground:rgb(7_27_53/0.62)]">
       {children}
     </section>
   );

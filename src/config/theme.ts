@@ -2,7 +2,7 @@ export const brand = {
   bgPrimary: "#071B35",
   bgSecondary: "#0B3159",
   accent: "#38BDF8",
-  accentSoft: "#A7DDFF",
+  accentSoft: "#DDF4FF",
   white: "#FFFFFF",
-  bgLight: "#EFF8FF",
+  bgLight: "#F4F8FC",
 } as const;

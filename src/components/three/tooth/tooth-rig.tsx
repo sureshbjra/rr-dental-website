@@ -26,7 +26,7 @@ export function ToothRig({ children, animate }: { children: React.ReactNode; ani
   const scroll = useRef<Group>(null);
 
   useEffect(() => {
-    if (!animate) return;
+    if (!animate || !window.matchMedia("(pointer: fine)").matches) return;
     const onMove = (e: PointerEvent) => {
       pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
       pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
@@ -45,6 +45,7 @@ export function ToothRig({ children, animate }: { children: React.ReactNode; ani
       scroll.current.rotation.y = MathUtils.damp(scroll.current.rotation.y, p * Math.PI * 1.15, 4, dt);
       scroll.current.rotation.x = MathUtils.damp(scroll.current.rotation.x, p * 0.65, 4, dt);
       scroll.current.position.y = MathUtils.damp(scroll.current.position.y, p * 0.35, 4, dt);
+      scroll.current.scale.setScalar(1 + MathUtils.clamp(p, 0, 1) * 0.2);
     }
     if (tilt.current) {
       const px = animate ? pointer.x : 0;

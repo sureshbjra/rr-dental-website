@@ -4,6 +4,9 @@
 @custom-variant dark (&:is(.dark *));
 /* Phones / tablets tall enough for the pinned full-screen scroll scenes (see MQ.mobileTall in lib/gsap). */
 @custom-variant tall (@media (max-width: 1023px) and (min-height: 700px));
+/* Phones in portrait with their browser bars showing (iPhone Safari ≈ 664px tall): full-screen scroll
+   scenes still run down to 500px; only landscape / very short screens fall back. Used by the home page. */
+@custom-variant phone (@media (max-width: 1023px) and (min-height: 500px));
 
 /* ==========================================================================
    RR Dental — "Scan room" design system
@@ -16,9 +19,9 @@
   --brand-navy: #071b35; /* Abyss — dark chapters */
   --brand-ocean: #0b3159; /* Deep — raised panels */
   --brand-cyan: #38bdf8; /* Signal — scan line, focus, primary action */
-  --brand-ice: #a7ddff; /* Ice — secondary text & diagrams on dark */
+  --brand-ice: #ddf4ff; /* Ice — secondary text & diagrams on dark */
   --brand-white: #ffffff;
-  --brand-mist: #eff8ff; /* Mist — light chapter, primary text on dark */
+  --brand-mist: #f4f8fc; /* Mist — light chapter, primary text on dark */
 
   --radius: 1.25rem;
 
@@ -203,11 +206,158 @@ body {
   }
 }
 
+/* Make every interactive control read as clickable; keep disabled controls distinct. */
+a[href]:not([aria-disabled="true"]),
+button:not(:disabled):not([aria-disabled="true"]),
+input[type="button"]:not(:disabled),
+input[type="reset"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+select:not(:disabled),
+label[for],
+summary,
+[role="button"]:not([aria-disabled="true"]),
+[role="link"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 /* SplitText line masks clip both axes: room for ascenders/descenders and for glyphs that
    overhang their advance under tight tracking (f, y, a final period). Layout is unchanged. */
 .split-line-mask {
   padding: 0.12em 0.08em;
   margin: -0.12em -0.08em;
+}
+
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+.hero-float {
+  animation: hero-float 7s ease-in-out infinite;
+}
+
+/* Dark, defocused clinic photography gives the 3D model a real sense of place without competing
+   with the headline. The separate vignette keeps the copy area calm and the right side dimensional. */
+.hero-clinic-photo {
+  background-size: cover;
+  background-position: 64% 50%;
+  filter: blur(3px) saturate(0.72) contrast(1.08) brightness(0.38);
+  opacity: 0.7;
+  transform: scale(1.05);
+  will-change: transform;
+}
+
+.hero-clinic-vignette {
+  background:
+    linear-gradient(90deg, rgb(3 13 27 / 0.92) 0%, rgb(5 21 42 / 0.78) 35%, rgb(5 21 42 / 0.5) 68%, rgb(4 16 33 / 0.66) 100%),
+    linear-gradient(180deg, rgb(4 17 34 / 0.34), transparent 28%, rgb(4 17 34 / 0.35));
+}
+
+.hero-title {
+  text-shadow: 0 5px 36px rgb(1 10 22 / 0.32);
+}
+
+@media (min-width: 1024px) and (max-height: 699px) {
+  .hero-title {
+    font-size: clamp(4rem, calc(7vw - 0.7svh), 7.1rem);
+  }
+}
+
+.hero-tooth-glow {
+  width: 102%;
+  height: 64%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgb(56 189 248 / 0.24), rgb(27 101 164 / 0.1) 42%, transparent 72%);
+  filter: blur(30px);
+  opacity: 0.72;
+}
+
+.hero-orbit-position {
+  pointer-events: none;
+  transform-style: preserve-3d;
+}
+
+.hero-orbit-position--outer {
+  width: 112%;
+  height: 58%;
+  transform: translate(-50%, -50%) rotateX(63deg) rotateZ(-18deg);
+}
+
+.hero-orbit-position--inner {
+  width: 76%;
+  height: 92%;
+  transform: translate(-50%, -50%) rotateY(61deg) rotateZ(23deg);
+}
+
+.hero-orbit-surface {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgb(91 214 255 / 0.48);
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgb(56 189 248 / 0.18), inset 0 0 18px rgb(56 189 248 / 0.09);
+  will-change: transform;
+}
+
+.hero-orbit-surface::before,
+.hero-orbit-surface::after {
+  position: absolute;
+  width: 0.52rem;
+  height: 0.52rem;
+  border-radius: 50%;
+  background: #b8f1ff;
+  box-shadow: 0 0 8px 2px rgb(56 189 248 / 0.88), 0 0 24px 7px rgb(56 189 248 / 0.48);
+  content: "";
+}
+
+.hero-orbit-surface::before {
+  top: 10%;
+  left: 13%;
+}
+
+.hero-orbit-surface::after {
+  right: 9%;
+  bottom: 16%;
+  width: 0.34rem;
+  height: 0.34rem;
+  opacity: 0.72;
+}
+
+.hero-orbit-surface--inner {
+  border-style: dashed;
+  border-color: rgb(167 221 255 / 0.38);
+  box-shadow: 0 0 24px rgb(56 189 248 / 0.15), inset 0 0 20px rgb(56 189 248 / 0.08);
+}
+
+@media (max-width: 1023px) {
+  .hero-clinic-photo {
+    background-position: 66% 50%;
+    filter: blur(3px) saturate(0.68) contrast(1.06) brightness(0.34);
+  }
+
+  .hero-orbit-position--outer {
+    width: 118%;
+    height: 54%;
+  }
+
+  .hero-orbit-position--inner {
+    width: 78%;
+    height: 96%;
+  }
 }
 
 /* Button label roll: the label slides up and an identical copy rolls in from below. */
@@ -252,5 +402,17 @@ body {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Oravie page (styles live in src/components/oravie/oravie.css) ---------- */
+/* Intro targets that hold links start transparent, not hidden, so they stay focusable. */
+@media (prefers-reduced-motion: no-preference) {
+  html.js:not(.anim-fallback) #oravie-page [data-o-fade] {
+    opacity: 0;
+  }
+
+  #oravie-page [data-o-fade]:focus-within {
+    opacity: 1 !important;
   }
 }

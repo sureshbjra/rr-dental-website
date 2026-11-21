@@ -45,6 +45,9 @@ export const MQ = {
   mobile: "(max-width: 1023px) and (prefers-reduced-motion: no-preference)",
   mobileTall: "(max-width: 1023px) and (min-height: 700px) and (prefers-reduced-motion: no-preference)",
   mobileShort: "(max-width: 1023px) and (max-height: 699px) and (prefers-reduced-motion: no-preference)",
+  // Home page: pinned scenes on phones down to 500px of visible height (matches the CSS `phone:` variant).
+  phonePin: "(max-width: 1023px) and (min-height: 500px) and (prefers-reduced-motion: no-preference)",
+  phoneShort: "(max-width: 1023px) and (max-height: 499px) and (prefers-reduced-motion: no-preference)",
   finePointer: "(pointer: fine) and (prefers-reduced-motion: no-preference)",
   reduce: "(prefers-reduced-motion: reduce)",
 } as const;

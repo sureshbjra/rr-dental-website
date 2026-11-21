@@ -17,14 +17,14 @@ export function TreatmentsSection() {
   const baseId = useId();
 
   return (
-    <div className="shell section-y grid gap-10 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-16">
-      <TextReveal as="h2" className="font-display text-display-l lg:col-span-12">
-        Treatments
+    <div id="treatments" className="shell section-y grid gap-10 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-16">
+      <TextReveal as="h2" className="font-display text-display-l max-w-[14ch] lg:col-span-12">
+        Exceptional care. Personalized for you.
       </TextReveal>
       <div className="lg:col-span-4 lg:pr-8">
         <div className="lg:sticky lg:top-32">
           <TextReveal as="p" delay={0.12} className="text-lead max-w-[30ch] text-navy/65">
-            Six ways we look after your teeth. Open one to see what it involves.
+            Explore ten areas of care. Open a treatment to learn what a conversation with your dentist may cover.
           </TextReveal>
           <Button asChild variant="inverse" className="mt-9 hidden lg:inline-flex">
             <TransitionLink href="/appointment">
@@ -34,7 +34,7 @@ export function TreatmentsSection() {
         </div>
       </div>
 
-      <StaggerReveal as="ul" variant="fade" stagger={0.06} className="border-t border-navy/15 lg:col-span-8">
+      <StaggerReveal as="ul" variant="fade" stagger={0.06} className="relative border-t border-navy/15 lg:col-span-8">
         {treatments.map((t, i) => {
           const open = openIndex === i;
           const panelId = `${baseId}-panel-${i}`;

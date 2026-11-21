@@ -3,9 +3,7 @@ import localFont from "next/font/local";
 import "@fontsource-variable/archivo/wdth.css";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import { MainNav } from "@/components/navigation/main-nav";
-import { Footer } from "@/components/layout/footer";
-import { ScrollProgress } from "@/components/animations/scroll-progress";
+import { SiteShell } from "@/components/layout/site-shell";
 import { siteConfig } from "@/config/site";
 import { asset } from "@/lib/asset";
 
@@ -64,13 +62,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           Skip to content
         </a>
         <Providers>
-          <ScrollProgress />
-          <MainNav />
-          {/* tabIndex -1: focus target for the skip link and for page transitions */}
-          <main id="main" tabIndex={-1} className="outline-none">
-            {children}
-          </main>
-          <Footer />
+          <SiteShell>{children}</SiteShell>
         </Providers>
       </body>
     </html>

@@ -169,7 +169,7 @@ export function MainNav() {
           <div className="flex items-center gap-2" data-nav-item>
             <Button asChild size="sm" className="hidden sm:inline-flex">
               <TransitionLink href="/appointment">
-                <Roll>Book a consultation</Roll>
+                <Roll>Book Appointment</Roll>
               </TransitionLink>
             </Button>
             <button
@@ -222,7 +222,7 @@ export function MainNav() {
           <div data-menu-foot className="shell space-y-4 pb-8">
             <Button asChild size="lg" className="w-full">
               <TransitionLink href="/appointment" onClick={() => setOpen(false)}>
-                Book a consultation
+                Book Appointment
               </TransitionLink>
             </Button>
             <address aria-label="Contact" className="grid gap-2 rounded-2xl border border-mist/10 bg-mist/[0.04] p-4 not-italic md:grid-cols-3 md:gap-4">
