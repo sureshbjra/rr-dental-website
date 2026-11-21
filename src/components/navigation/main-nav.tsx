@@ -7,7 +7,7 @@ import { Logo } from "@/components/ui/logo";
 import { TransitionLink } from "@/components/animations/transition-link";
 import { gsap, MQ, prefersReducedMotion, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { getLenis } from "@/lib/scroll-state";
-import { mainNav, phoneHref, siteConfig } from "@/config/site";
+import { addressLines, directionsHref, mainNav, phoneHref, siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -16,7 +16,9 @@ const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1
  * Full-width bar: transparent over the hero, frosted once you scroll, navy text over the light
  * chapter (`data-light`, set by <LightChapter>). Hides on scroll down, returns on scroll up.
  * Below 1280px the links move into a full-screen menu — a modal dialog: focus moves in, Tab is
- * contained, Escape closes, focus returns to the toggle and the page behind is inert.
+ * contained, Escape closes, focus returns to the toggle and the page behind is inert. The link size
+ * follows the screen height so every item (Contact included) and the contact details fit; on very
+ * short screens the menu scrolls below the bar.
  */
 export function MainNav() {
   const [open, setOpen] = useState(false);
@@ -193,44 +195,88 @@ export function MainNav() {
         aria-label="Site menu"
         className="fixed inset-0 z-40 hidden flex-col bg-navy pt-[4.5rem] text-mist xl:hidden"
       >
-        <div aria-hidden className="h-px w-full bg-cyan shadow-[0_0_14px_rgb(56_189_248/0.9)]" />
-        <nav aria-label="Mobile" className="shell flex flex-1 flex-col justify-center">
-          <ul className="space-y-1">
-            {links.map((item) => (
-              <li key={item.href} className="overflow-hidden">
-                <div data-menu-item>
-                  <TransitionLink
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    aria-current={pathname === item.href ? "page" : undefined}
-                    className={cn(
-                      "font-display block py-1.5 text-[clamp(2rem,9vw,3.25rem)] leading-[1.1] tracking-[-0.03em]",
-                      pathname === item.href ? "text-cyan" : "text-mist"
-                    )}
-                  >
-                    {item.label}
-                  </TransitionLink>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <div data-menu-foot className="shell space-y-4 pb-10">
-          <Button asChild size="lg" className="w-full">
-            <TransitionLink href="/appointment" onClick={() => setOpen(false)}>
-              Book a consultation
-            </TransitionLink>
-          </Button>
-          <div className="text-caption flex flex-col items-center gap-1 text-mist/70">
-            <a href={phoneHref} className="inline-block py-1.5">
-              {siteConfig.phone}
-            </a>
-            <a href={`mailto:${siteConfig.email}`} className="inline-block py-1.5">
-              {siteConfig.email}
-            </a>
+        <div aria-hidden className="h-px w-full shrink-0 bg-cyan shadow-[0_0_14px_rgb(56_189_248/0.9)]" />
+        {/* Scrolls on its own (below the bar) when a short screen can't fit everything. */}
+        <div data-lenis-prevent data-menu-scroll className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+          <nav aria-label="Mobile" className="shell flex flex-1 flex-col justify-center py-4">
+            <ul>
+              {links.map((item) => (
+                <li key={item.href} className="overflow-hidden">
+                  <div data-menu-item>
+                    <TransitionLink
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      aria-current={pathname === item.href ? "page" : undefined}
+                      className={cn(
+                        "font-display block py-[0.6svh] text-[clamp(1.6rem,min(9vw,5.6svh),3.25rem)] leading-[1.12] tracking-[-0.03em]",
+                        pathname === item.href ? "text-cyan" : "text-mist"
+                      )}
+                    >
+                      {item.label}
+                    </TransitionLink>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <div data-menu-foot className="shell space-y-4 pb-8">
+            <Button asChild size="lg" className="w-full">
+              <TransitionLink href="/appointment" onClick={() => setOpen(false)}>
+                Book a consultation
+              </TransitionLink>
+            </Button>
+            <address aria-label="Contact" className="grid gap-2 rounded-2xl border border-mist/10 bg-mist/[0.04] p-4 not-italic md:grid-cols-3 md:gap-4">
+              <a href={phoneHref} className="group flex items-center gap-3 py-1">
+                <ContactIcon kind="phone" />
+                <span className="min-w-0">
+                  <span className="text-caption block text-mist/55">Call us</span>
+                  <span className="font-ui block text-sm text-mist group-hover:text-cyan">{siteConfig.phone}</span>
+                </span>
+              </a>
+              <a href={`mailto:${siteConfig.email}`} className="group flex items-center gap-3 py-1">
+                <ContactIcon kind="mail" />
+                <span className="min-w-0">
+                  <span className="text-caption block text-mist/55">Email</span>
+                  <span className="font-ui block text-sm break-all text-mist group-hover:text-cyan md:break-normal">{siteConfig.email}</span>
+                </span>
+              </a>
+              <a href={directionsHref} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 py-1">
+                <ContactIcon kind="pin" />
+                <span className="min-w-0">
+                  <span className="text-caption block text-mist/55">
+                    Get directions<span className="sr-only"> (opens Google Maps in a new tab)</span>
+                  </span>
+                  <span className="font-ui block text-sm text-mist group-hover:text-cyan">
+                    {addressLines[0]}, {addressLines[1]}
+                  </span>
+                </span>
+              </a>
+            </address>
           </div>
         </div>
       </div>
     </>
+  );
+}
+
+function ContactIcon({ kind }: { kind: "phone" | "mail" | "pin" }) {
+  return (
+    <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cyan/12 text-cyan">
+      <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        {kind === "phone" && <path d="M5.2 2.8h2.3l1.2 3.3-1.6 1.1a9.4 9.4 0 0 0 4.5 4.5l1.1-1.6 3.3 1.2v2.3a1.7 1.7 0 0 1-1.8 1.7A13.6 13.6 0 0 1 3.5 4.6a1.7 1.7 0 0 1 1.7-1.8Z" />}
+        {kind === "mail" && (
+          <>
+            <rect x="2.8" y="4.5" width="14.4" height="11" rx="2" />
+            <path d="m3.5 5.5 6.5 5 6.5-5" />
+          </>
+        )}
+        {kind === "pin" && (
+          <>
+            <path d="M10 17.5s5.5-5 5.5-9.3a5.5 5.5 0 0 0-11 0c0 4.3 5.5 9.3 5.5 9.3Z" />
+            <circle cx="10" cy="8.2" r="2" />
+          </>
+        )}
+      </svg>
+    </span>
   );
 }
