@@ -8,7 +8,7 @@ const profiles = ["01", "02", "03"];
 /** Intentionally uses profile placeholders until the clinic supplies approved staff details. */
 export function DoctorsSection() {
   return (
-    <section id="doctors" className="bg-mist py-24 text-navy sm:py-32 lg:py-40">
+    <section id="doctors" data-nav-light className="bg-mist py-24 text-navy sm:py-32 lg:py-40">
       <div className="shell">
         <div className="grid gap-6 lg:grid-cols-12 lg:items-end">
           <TextReveal as="p" className="font-ui text-caption tracking-[0.18em] text-navy/50 lg:col-span-3">THE PEOPLE BEHIND YOUR CARE</TextReveal>

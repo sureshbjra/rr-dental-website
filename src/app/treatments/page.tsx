@@ -9,7 +9,7 @@ export const metadata: Metadata = { title, description };
 
 export default function Page() {
   return (
-    <div className="bg-mist text-navy">
+    <div data-nav-light className="bg-mist text-navy">
       <section className="shell mx-auto max-w-7xl pt-36 pb-10 sm:pt-44 sm:pb-14">
         <p className="font-ui text-caption tracking-[0.22em] text-navy/70">CARE OVERVIEW</p>
         <div className="mt-5 grid gap-6 md:grid-cols-[1.1fr_0.9fr] md:items-end">

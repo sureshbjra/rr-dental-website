@@ -20,7 +20,7 @@ export default function Page() {
           </TextReveal>
         </div>
       </section>
-      <section className="bg-mist py-16 text-navy sm:py-24">
+      <section data-nav-light className="bg-mist py-16 text-navy sm:py-24">
         <div className="shell"><AppointmentForm /></div>
       </section>
     </>

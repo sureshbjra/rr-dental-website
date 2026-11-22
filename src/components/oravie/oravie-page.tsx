@@ -5,6 +5,7 @@ import { Component, useCallback, useEffect, useRef, useState, useSyncExternalSto
 import { preload } from "react-dom";
 import { TransitionLink } from "@/components/animations/transition-link";
 import { Magnetic } from "@/components/animations/magnetic";
+import { MenuIcon, SiteMenu } from "@/components/navigation/site-menu";
 import { journeyStage, oravieState, resetOravieState } from "@/components/oravie/oravie-state";
 import { TOOTH_HERO_MODEL_URL } from "@/config/models";
 import { asset } from "@/lib/asset";
@@ -202,67 +203,73 @@ function Foliage({ className }: { className: string }) {
 
 /* ------------------------------------------------------------------ parts */
 
+/** The page behind the open menu (made inert): everything on the page but the bar itself. */
+const menuBackground = () => {
+  const page = document.getElementById("oravie-page");
+  const rest = Array.from(page?.children ?? []).filter((el) => !el.classList.contains("ov-hero-wrap"));
+  return [page?.querySelector(".ov-frame"), ...rest, document.querySelector("footer")];
+};
+
+const MENU_LINKS = NAV.map(({ label, href, active }) => ({ label, href, current: active }));
+
 function Navigation() {
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  const toggle = useRef<HTMLButtonElement>(null);
+  const close = useCallback((returnFocus: boolean) => {
+    setOpen(false);
+    if (returnFocus) toggle.current?.focus();
+  }, []);
 
   return (
-    <header className="ov-nav" data-o-nav data-o-fade>
-      <div className="ov-brand-row">
-        <TransitionLink href="/" className="ov-brand">
-          <ToothMark className="ov-brand-mark" />
-          <span className="ov-brand-text">
-            <span className="ov-brand-name">{BRAND.name}</span>{" "}
-            <span className="ov-brand-sub">{BRAND.sub}</span>
-          </span>
-        </TransitionLink>
-        <span aria-hidden="true" className="ov-brand-rule" />
-      </div>
+    <>
+      {/* While the menu is open the bar is fixed above it (data-menu-open), so ✕ stays in reach. */}
+      <header className="ov-nav" data-o-nav data-o-fade data-menu-open={open || undefined}>
+        <div className="ov-brand-row">
+          <TransitionLink href="/" className="ov-brand" onClick={() => setOpen(false)}>
+            <ToothMark className="ov-brand-mark" />
+            <span className="ov-brand-text">
+              <span className="ov-brand-name">{BRAND.name}</span>{" "}
+              <span className="ov-brand-sub">{BRAND.sub}</span>
+            </span>
+          </TransitionLink>
+          <span aria-hidden="true" className="ov-brand-rule" />
+        </div>
 
-      <nav aria-label="Main" className="ov-nav-links">
-        <ul className="ov-links">
-          {NAV.map((item) => (
-            <li key={item.label}>
-              <TransitionLink href={item.href} className={`ov-link ${item.active ? "ov-link-active" : ""}`} aria-current={item.active ? "page" : undefined}>
-                {item.label}
-              </TransitionLink>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      <div className="ov-nav-right">
-        <TransitionLink href="/appointment" className="ov-nav-cta">
-          <CalendarIcon />
-          <span>
-            Book<span className="ov-nav-cta-long"> Appointment</span>
-          </span>
-        </TransitionLink>
-        <button type="button" className="ov-menu-btn" aria-expanded={open} aria-controls="oravie-menu" onClick={() => setOpen((v) => !v)}>
-          {open ? "Close" : "Menu"}
-        </button>
-      </div>
-
-      {open && (
-        <nav id="oravie-menu" aria-label="Mobile" className="ov-mobile-menu">
-          <ul>
+        <nav aria-label="Main" className="ov-nav-links">
+          <ul className="ov-links">
             {NAV.map((item) => (
               <li key={item.label}>
-                <TransitionLink href={item.href} onClick={() => setOpen(false)} aria-current={item.active ? "page" : undefined}>
+                <TransitionLink href={item.href} className={`ov-link ${item.active ? "ov-link-active" : ""}`} aria-current={item.active ? "page" : undefined}>
                   {item.label}
                 </TransitionLink>
               </li>
             ))}
           </ul>
         </nav>
-      )}
-    </header>
+
+        <div className="ov-nav-right">
+          <TransitionLink href="/appointment" className="ov-nav-cta" onClick={() => setOpen(false)}>
+            <CalendarIcon />
+            <span>
+              Book<span className="ov-nav-cta-long"> Appointment</span>
+            </span>
+          </TransitionLink>
+          <button
+            ref={toggle}
+            type="button"
+            className="ov-menu-btn menu-toggle"
+            aria-expanded={open}
+            aria-controls="oravie-menu"
+            aria-label={open ? "Close menu" : "Open menu"}
+            onClick={() => setOpen((v) => !v)}
+          >
+            <MenuIcon open={open} />
+          </button>
+        </div>
+      </header>
+      {/* A sibling of the bar, not inside it: the bar's intro animation would otherwise trap the fixed menu. */}
+      <SiteMenu id="oravie-menu" open={open} onClose={close} toggle={toggle} links={MENU_LINKS} closeFrom={1024} background={menuBackground} />
+    </>
   );
 }
 
