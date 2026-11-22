@@ -1,13 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { Component, useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { preload } from "react-dom";
 import { TransitionLink } from "@/components/animations/transition-link";
 import { Magnetic } from "@/components/animations/magnetic";
 import { journeyStage, oravieState, resetOravieState } from "@/components/oravie/oravie-state";
+import { TOOTH_HERO_MODEL_URL } from "@/config/models";
 import { asset } from "@/lib/asset";
-import { gsap, MQ, ScrollTrigger, SplitText, useGSAP } from "@/lib/gsap";
-import { enterDelay, getLenis } from "@/lib/scroll-state";
+import { gsap, MQ, ScrollTrigger, useGSAP } from "@/lib/gsap";
+import { getLenis, transitionState } from "@/lib/scroll-state";
 import { TreatmentsSection } from "@/components/treatments/treatments-section";
 import { TechnologySection } from "@/components/sections/technology-section";
 import { ProcessSection } from "@/components/sections/process-section";
@@ -15,7 +17,49 @@ import { HospitalSection } from "@/components/sections/hospital-section";
 import { GalleryPreview } from "@/components/sections/gallery-preview";
 import { mainNav } from "@/config/site";
 
-const ToothScene = dynamic(() => import("@/components/three/oravie-tooth-scene"), { ssr: false, loading: () => null });
+/**
+ * three.js needs WebGL 2 — and the hero scene needs a GPU: drawn in software (graphics acceleration off,
+ * blocked GPU drivers, machines without a GPU such as PageSpeed Insights' test machines) it runs at a
+ * few frames per second and freezes the page while it does. In those cases, and without WebGL 2 at all,
+ * the hero shows a still of the scene instead. `failIfMajorPerformanceCaveat` is the browser's own
+ * "this would be software rendering" signal. Checked once, in the browser only.
+ */
+let webgl2: boolean | undefined;
+function supportsWebGL2() {
+  if (webgl2 === undefined) {
+    try {
+      const gl = document.createElement("canvas").getContext("webgl2", { failIfMajorPerformanceCaveat: true });
+      gl?.getExtension("WEBGL_lose_context")?.loseContext();
+      webgl2 = !!gl;
+    } catch {
+      webgl2 = false;
+    }
+  }
+  return webgl2;
+}
+const noSubscribe = () => () => {};
+/** null while server-rendering / hydrating, then whether the browser has WebGL 2. */
+const useWebGL2 = () => useSyncExternalStore(noSubscribe, supportsWebGL2, () => null);
+
+const loadToothScene = () => import("@/components/three/oravie-tooth-scene");
+const ToothScene = dynamic(loadToothScene, { ssr: false, loading: () => null });
+// Fetch the 3D code (~270 KB) as soon as this module runs — while the page is still hydrating —
+// instead of when the scene first renders afterwards.
+if (typeof window !== "undefined" && supportsWebGL2()) loadToothScene().catch(() => undefined);
+
+/** Keeps a 3D failure (lost GPU, model download error) inside the hero instead of taking the page down. */
+class SceneBoundary extends Component<{ children: ReactNode; onError: () => void }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch() {
+    this.props.onError();
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
 
 /** The logo text: "RR Dental" with "Hospital" beneath it. */
 const BRAND = { name: "RR Dental", sub: "Hospital" };
@@ -107,8 +151,8 @@ const PlayIcon = () => (
   </svg>
 );
 
-const Chevrons = () => (
-  <svg aria-hidden="true" viewBox="0 0 36 30" className="ov-chevrons" data-o-chevron fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+const Chevrons = ({ index }: { index: number }) => (
+  <svg aria-hidden="true" viewBox="0 0 36 30" className="ov-chevrons" data-o-chevron style={{ "--i": index } as CSSProperties} fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
     <path d="M6 5l10 10-10 10M18 5l10 10-10 10" />
   </svg>
 );
@@ -223,7 +267,14 @@ function Navigation() {
 }
 
 function ServiceCard({ service, index }: { service: Service; index: number }) {
+  // The intro bursts each card out of the tooth: it starts 72% of the way to the stage centre (50%, 40%).
+  const burst = (from: string, centre: number) => ((centre - parseFloat(from)) * 0.72).toFixed(2);
   const style = {
+    "--i": index,
+    "--ox": burst(service.x, 50),
+    "--oy": burst(service.y, 40),
+    "--mox": burst(service.mx, 50),
+    "--moy": burst(service.my, 40),
     "--fd": `${3.2 + (index % 3) * 0.55}s`,
     "--fdl": `${-index * 0.9}s`,
     "--x": service.x,
@@ -265,6 +316,17 @@ export function OraviePage({ fontClass = "" }: { fontClass?: string }) {
   const journeyTrigger = useRef<ScrollTrigger | null>(null);
   const [sceneReady, setSceneReady] = useState(false);
   const onSceneReady = useCallback(() => setSceneReady(true), []);
+  // "live": the WebGL scene; "still": a picture of it (no WebGL 2, or the scene failed to load).
+  const webgl = useWebGL2();
+  const [sceneFailed, setSceneFailed] = useState(false);
+  const onSceneError = useCallback(() => setSceneFailed(true), []);
+  const scene3d = webgl === null ? "pending" : webgl && !sceneFailed ? "live" : "still";
+  // Arriving through a page transition, the intro waits for the curtain to lift.
+  const [enterDelay] = useState(() => (transitionState.active ? 0.65 : 0.1));
+
+  // The tooth model downloads alongside the page's scripts rather than after them (low priority, so
+  // it never holds up the styles, fonts, scripts or the backdrop photo).
+  preload(TOOTH_HERO_MODEL_URL, { as: "fetch", crossOrigin: "anonymous", fetchPriority: "low" });
 
   // The tooth descends onto the pedestal once its first frame has been drawn.
   useEffect(() => {
@@ -298,9 +360,10 @@ export function OraviePage({ fontClass = "" }: { fontClass?: string }) {
       const q = gsap.utils.selector(root);
       const [hero] = q("[data-o-hero]") as HTMLElement[];
       const [scene] = q("[data-o-scene]") as HTMLElement[];
-      const [stage] = q("[data-o-stage]") as HTMLElement[];
-      const [title] = q("[data-o-title]") as HTMLElement[];
-      const [lede] = q("[data-o-lede]") as HTMLElement[];
+      // The pinned element's existing wrapper serves as its pin-spacer: the element is never moved in
+      // the DOM, which would restart the CSS intro running inside it.
+      const [heroWrap] = q(".ov-hero-wrap") as HTMLElement[];
+      const [sceneWrap] = q(".ov-scene-wrap") as HTMLElement[];
       const steps = q("[data-o-step]") as HTMLElement[];
       const chevrons = q("[data-o-chevron]") as unknown as SVGElement[];
 
@@ -323,55 +386,9 @@ export function OraviePage({ fontClass = "" }: { fontClass?: string }) {
       const mm = gsap.matchMedia();
       mm.add({ desktop: MQ.desktop, tall: MQ.phonePin, short: MQ.phoneShort }, (ctx) => {
         const { desktop, short } = ctx.conditions as { desktop: boolean; tall: boolean; short: boolean };
-        const d = enterDelay(0.1);
 
-        // ------------------------------------------------------------ intro
-        SplitText.create(title, {
-          type: "lines",
-          aria: "none",
-          mask: "lines",
-          linesClass: "split-line",
-          autoSplit: true,
-          onSplit: (self) => gsap.from(self.lines, { yPercent: 115, duration: 1.4, ease: "reveal", stagger: 0.13, delay: d + 0.3 }),
-        });
-        SplitText.create(lede, {
-          type: "lines",
-          aria: "none",
-          mask: "lines",
-          linesClass: "split-line",
-          autoSplit: true,
-          onSplit: (self) => gsap.from(self.lines, { yPercent: 110, duration: 1.2, ease: "reveal", stagger: 0.08, delay: d + 0.65 }),
-        });
-        gsap.set([title, lede], { visibility: "visible" });
-
-        // Cards burst out of the tooth: each starts most of the way towards the stage centre.
-        const sr = stage.getBoundingClientRect();
-        const toCentre = (axis: "x" | "y") => (_: number, el: HTMLElement) => {
-          const r = el.getBoundingClientRect();
-          return axis === "x" ? (sr.left + sr.width / 2 - (r.left + r.width / 2)) * 0.72 : (sr.top + sr.height * 0.4 - (r.top + r.height / 2)) * 0.72;
-        };
-
-        const intro = gsap.timeline({ delay: d, defaults: { ease: "reveal" } });
-        intro
-          .fromTo(q("[data-o-photo]"), { scale: 1.14, opacity: 0 }, { scale: 1, opacity: 1, duration: 3, ease: "power2.out" }, 0)
-          .fromTo(q("[data-o-nav]"), { opacity: 0, y: -18 }, { opacity: 1, y: 0, duration: 1.1 }, 0.1)
-          .fromTo(q("[data-o-eyebrow]"), { autoAlpha: 0, letterSpacing: "0.9em" }, { autoAlpha: 1, letterSpacing: desktop ? "0.42em" : "0.36em", duration: 1.6 }, 0.15)
-          .fromTo(q("[data-o-action]"), { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 1.1, stagger: 0.1 }, 0.95)
-          .fromTo(q("[data-o-panel]"), { opacity: 0, yPercent: 40 }, { opacity: 1, yPercent: 0, duration: 1.5 }, 0.55)
-          .fromTo(q("[data-o-panel-head]"), { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 1.1 }, 1.0)
-          .fromTo(steps, { autoAlpha: 0, y: 28, scale: 0.9 }, { autoAlpha: 1, y: 0, scale: 1, duration: 1.1, stagger: 0.12 }, 1.15)
-          .fromTo(chevrons, { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.8, stagger: 0.12 }, 1.45)
-          .fromTo(
-            q("[data-o-card]"),
-            { opacity: 0, scale: 0.35, x: toCentre("x"), y: toCentre("y"), filter: "blur(8px)" },
-            // filter is cleared afterwards: a leftover filter would switch off the cards' glass blur
-            { opacity: 1, scale: 1, x: 0, y: 0, filter: "blur(0px)", duration: 1.4, ease: "expo.out", stagger: 0.08, clearProps: "filter" },
-            1.45
-          )
-          .fromTo(q("[data-o-wire]"), { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.9, stagger: 0.07, ease: "power2.inOut" }, 2.05)
-          .fromTo(q("[data-o-wire-dot]"), { scale: 0, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.5, stagger: 0.05, ease: "back.out(3)" }, 2.5)
-          .fromTo(q("[data-o-cue]"), { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 1 }, 2.3);
-
+        // The intro (photo, menu, copy, cards, wires, journey panel) is CSS — see "intro" in oravie.css —
+        // so it starts with the first paint instead of waiting for this script to download and run.
         // Ambient life (card float, wire pulses, sparkles) is CSS — it runs on the compositor.
 
         // ------------------------------------------------------------ the care journey (scroll)
@@ -383,6 +400,7 @@ export function OraviePage({ fontClass = "" }: { fontClass?: string }) {
               start: desktop ? "top top" : "bottom bottom",
               end: desktop ? "+=240%" : "+=200%",
               pin: true,
+              pinSpacer: desktop ? heroWrap : sceneWrap,
               scrub: 0.7,
               anticipatePin: 1,
               refreshPriority: 1, // measured before the sections below it (see the sort at the end)
@@ -433,18 +451,22 @@ export function OraviePage({ fontClass = "" }: { fontClass?: string }) {
   );
 
   return (
-    <div ref={root} id="oravie-page" className={`ov-root ${fontClass}`}>
+    <div ref={root} id="oravie-page" className={`ov-root ${fontClass}`} style={{ "--ov-d": `${enterDelay}s` } as CSSProperties}>
       {/* The room: the clinic photograph, tinted to the night-blue palette, with leaves in the corners. */}
       <div aria-hidden="true" className="ov-backdrop">
         {/* backdrop.webp is the clinic photo with its blur and blue grade baked in (no live filters). */}
         {/* eslint-disable-next-line @next/next/no-img-element -- decorative backdrop on a static export */}
         <img data-o-photo className="ov-photo" src={asset("/images/oravie/backdrop.webp")} alt="" />
+        {/* The photo's fade-in is this night-blue veil lifting off it (the same look as fading the
+            photo itself), so the photo counts as painted at once: Chrome times the largest paint (LCP)
+            of an image that fades in from transparent only once the fade has finished. */}
+        <div className="ov-photo-veil" />
         <div className="ov-tint" />
         <Foliage className="ov-foliage ov-foliage-left" />
         <Foliage className="ov-foliage ov-foliage-right" />
       </div>
 
-      {/* Outer div: the hero is pinned (wrapped in a pin-spacer) on desktop. */}
+      {/* Outer div: the pin-spacer while the hero is pinned (desktop). */}
       <div className="ov-hero-wrap">
         <section data-o-hero className="ov-hero" aria-labelledby="oravie-title">
           {/* The menu bar spans the full screen width (the frame below is the scaled reference grid). */}
@@ -452,29 +474,34 @@ export function OraviePage({ fontClass = "" }: { fontClass?: string }) {
           <div className="ov-frame">
 
             <div className="ov-copy">
-              <p data-o-eyebrow data-animate className="ov-eyebrow">
+              <p data-o-eyebrow className="ov-eyebrow">
                 Advanced Dental Care
               </p>
-              <h1 id="oravie-title" data-o-title data-animate className="ov-title">
-                <span>
-                  Your <span className="ov-accent">Smile.</span>
+              {/* Each line rises out of its own mask (.ov-line) in the CSS intro. */}
+              <h1 id="oravie-title" data-o-title className="ov-title">
+                <span className="ov-line" style={{ "--i": 0 } as CSSProperties}>
+                  <span>
+                    Your <span className="ov-accent">Smile.</span>
+                  </span>
                 </span>
-                <span>
-                  Our Innovation<span className="ov-accent">.</span>
+                <span className="ov-line" style={{ "--i": 1 } as CSSProperties}>
+                  <span>
+                    Our Innovation<span className="ov-accent">.</span>
+                  </span>
                 </span>
               </h1>
-              <p data-o-lede data-animate className="ov-lede">
-                Experience modern dentistry with precision, innovation and personalized care.
+              <p data-o-lede className="ov-lede">
+                <span>Experience modern dentistry with precision, innovation and personalized care.</span>
               </p>
               <div className="ov-actions">
-                <div data-o-action data-o-fade>
+                <div data-o-action data-o-fade style={{ "--i": 0 } as CSSProperties}>
                   <Magnetic strength={0.2}>
                     <TransitionLink href="/appointment" className="ov-btn-primary">
                       Book Appointment <ArrowIcon />
                     </TransitionLink>
                   </Magnetic>
                 </div>
-                <div data-o-action data-o-fade>
+                <div data-o-action data-o-fade style={{ "--i": 1 } as CSSProperties}>
                   <button type="button" className="ov-btn-ghost" onClick={playJourney} aria-label="Watch Video: play the dental care journey">
                     <PlayIcon /> Watch Video
                   </button>
@@ -482,7 +509,7 @@ export function OraviePage({ fontClass = "" }: { fontClass?: string }) {
               </div>
             </div>
 
-            {/* Outer div: on phones the scene itself is pinned. */}
+            {/* Outer div: the pin-spacer while the scene is pinned (phones). */}
             <div className="ov-scene-wrap">
               <div data-o-scene className="ov-scene">
                 <div data-o-stage className="ov-stage">
@@ -493,19 +520,29 @@ export function OraviePage({ fontClass = "" }: { fontClass?: string }) {
                     role="img"
                     aria-label="3D tooth on a glowing pedestal. As you scroll it shows decay, a cross-section treatment and the restored tooth."
                   >
-                    <ToothScene onReady={onSceneReady} anchor={anchor} />
+                    {scene3d === "live" && (
+                      <SceneBoundary onError={onSceneError}>
+                        <ToothScene onReady={onSceneReady} anchor={anchor} />
+                      </SceneBoundary>
+                    )}
                   </div>
-                  <div ref={anchor} aria-hidden="true" className="ov-anchor" />
+                  <div ref={anchor} aria-hidden="true" className="ov-anchor">
+                    {scene3d === "still" && (
+                      // eslint-disable-next-line @next/next/no-img-element -- static export; fallback still of the 3D scene
+                      <img className="ov-still" src={asset("/images/oravie/tooth-scene.webp")} alt="" draggable={false} />
+                    )}
+                  </div>
                   <svg aria-hidden="true" data-o-wires className="ov-wires" viewBox="0 0 860 560" preserveAspectRatio="none">
-                    {SERVICES.map(({ wire: [a, c, b], icon: key }) => {
+                    {SERVICES.map(({ wire: [a, c, b], icon: key }, k) => {
                       const d = `M${a[0]} ${a[1]} Q${c[0]} ${c[1]} ${b[0]} ${b[1]}`;
+                      const i = (n: number) => ({ "--i": 2 * k + n }) as CSSProperties;
                       return (
                         <g key={key}>
-                          <path data-o-wire className="ov-wire-glow" d={d} pathLength={1} strokeDasharray="1" />
-                          <path data-o-wire className="ov-wire" d={d} pathLength={1} strokeDasharray="1" />
+                          <path data-o-wire className="ov-wire-glow" d={d} pathLength={1} strokeDasharray="1" style={i(0)} />
+                          <path data-o-wire className="ov-wire" d={d} pathLength={1} strokeDasharray="1" style={i(1)} />
                           <path className="ov-wire-pulse" d={d} pathLength={1} />
-                          <circle data-o-wire-dot className="ov-wire-dot" cx={a[0]} cy={a[1]} r="3" />
-                          <circle data-o-wire-dot className="ov-wire-dot" cx={b[0]} cy={b[1]} r="3.4" />
+                          <circle data-o-wire-dot className="ov-wire-dot" cx={a[0]} cy={a[1]} r="3" style={i(0)} />
+                          <circle data-o-wire-dot className="ov-wire-dot" cx={b[0]} cy={b[1]} r="3.4" style={i(1)} />
                         </g>
                       );
                     })}
@@ -516,14 +553,17 @@ export function OraviePage({ fontClass = "" }: { fontClass?: string }) {
                 </div>
 
                 <div aria-hidden="true" data-o-cue className="ov-cue">
-                  <span>SCROLL TO EXPLORE</span>
-                  <svg viewBox="0 0 26 14" className="ov-cue-chevron" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 2l11 10L24 2" />
-                  </svg>
+                  {/* The CSS intro moves this inner box; the scroll timeline moves the outer one. */}
+                  <div className="ov-cue-in">
+                    <span>SCROLL TO EXPLORE</span>
+                    <svg viewBox="0 0 26 14" className="ov-cue-chevron" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 2l11 10L24 2" />
+                    </svg>
+                  </div>
                 </div>
 
                 <section id="oravie-journey" data-o-panel className="ov-panel" aria-labelledby="oravie-journey-title">
-                  <div data-o-panel-head data-animate className="ov-panel-head">
+                  <div data-o-panel-head className="ov-panel-head">
                     <span aria-hidden="true" className="ov-panel-rule" />
                     <h2 id="oravie-journey-title" className="ov-panel-title">
                       The Dental <span className="ov-accent">Care Journey</span>
@@ -533,8 +573,8 @@ export function OraviePage({ fontClass = "" }: { fontClass?: string }) {
                   <ol className="ov-steps">
                     {STEPS.map((step, i) => (
                       <li key={step.label} className="ov-step-item">
-                        {i > 0 && <Chevrons />}
-                        <div data-o-step data-animate className="ov-step">
+                        {i > 0 && <Chevrons index={i - 1} />}
+                        <div data-o-step className="ov-step" style={{ "--i": i } as CSSProperties}>
                           <div className="ov-step-visual">
                             <span aria-hidden="true" className="ov-pedestal" />
                             <span className="ov-step-icon-box">

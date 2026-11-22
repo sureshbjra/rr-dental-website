@@ -24,18 +24,19 @@ export const metadata: Metadata = {
 };
 
 /**
- * Archivo's Latin subset through next/font so it is preloaded: the hero headline is set in it, and a
- * late swap re-wraps the headline and pushes the 3D poster down on phones (layout shift, later LCP).
+ * Archivo's Latin subset through next/font so it is preloaded: page headlines are set in it, and a
+ * late swap re-wraps them (layout shift, later LCP). The file is Archivo with its width axis trimmed to
+ * the 100–125 % the site uses (61 KB instead of 90 KB; see scripts/fonts/instance-archivo.py).
  * The other subsets (latin-ext — e.g. ₹ — and Vietnamese) still load on demand from @fontsource,
  * which is next in the font stack (see --font-sans in globals.css).
  */
 const archivo = localFont({
-  src: "../../node_modules/@fontsource-variable/archivo/files/archivo-latin-wdth-normal.woff2",
+  src: "../fonts/archivo-latin-wdth100-125.woff2",
   variable: "--font-archivo",
   weight: "100 900",
   style: "normal",
   display: "swap",
-  declarations: [{ prop: "font-stretch", value: "62% 125%" }],
+  declarations: [{ prop: "font-stretch", value: "100% 125%" }],
   // A metric-matched Arial can't follow the width axis, so it wouldn't prevent the re-wrap.
   adjustFontFallback: false,
 });

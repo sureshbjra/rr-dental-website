@@ -39,6 +39,13 @@
   object-position: 78% 42%;
 }
 
+.ov-photo-veil {
+  position: absolute;
+  inset: 0;
+  background: var(--navy);
+  opacity: 0;
+}
+
 .ov-tint {
   position: absolute;
   inset: 0;
@@ -479,6 +486,13 @@
   letter-spacing: 0.5em;
   white-space: nowrap;
   pointer-events: none;
+}
+
+.ov-cue-in {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: inherit;
 }
 
 .ov-cue-chevron {
@@ -1174,6 +1188,11 @@
     --ry: var(--mry);
   }
 
+  .ov-card {
+    --bx: var(--mox);
+    --by: var(--moy);
+  }
+
   .ov-card-icon {
     height: min(2.2rem, calc(var(--stage-h) * 0.095));
   }
@@ -1277,6 +1296,241 @@
   .ov-copy {
     padding-inline: 2.5rem;
   }
+}
+
+/* ---------------------------------------------------------------- intro
+ * The opening sequence runs in CSS so it starts with the first paint — it used to wait for the page's
+ * JavaScript (~240 KB) to download and run, which left the hero empty for seconds on a phone.
+ * Timings and easings are those of the former GSAP timeline; --ov-d (set on .ov-root) is its start
+ * delay, longer when the page is reached through the page transition. `translate` and `scale` (not
+ * `transform`) leave each element's own transform in place, and `backwards` fill holds the first
+ * keyframe through the delay and then hands every property back to the stylesheet.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .ov-root {
+    --ov-reveal: cubic-bezier(0.16, 1, 0.3, 1);
+    --ov-power2-out: cubic-bezier(0.3333, 1, 0.6667, 1);
+    --ov-expo-out: linear(0 0%, 0.2929 5%, 0.5 10%, 0.6464 15%, 0.75 20%, 0.8232 25%, 0.875 30%, 0.9116 35%, 0.9375 40%, 0.9558 45%, 0.9688 50%, 0.9779 55%, 0.9844 60%, 0.989 65%, 0.9922 70%, 0.9945 75%, 0.9961 80%, 0.9972 85%, 0.998 90%, 0.9986 95%, 1 100%);
+    --ov-power2-in-out: linear(0 0%, 0.001 6.25%, 0.0078 12.5%, 0.0264 18.75%, 0.0625 25%, 0.1221 31.25%, 0.2109 37.5%, 0.335 43.75%, 0.5 50%, 0.665 56.25%, 0.7891 62.5%, 0.8779 68.75%, 0.9375 75%, 0.9736 81.25%, 0.9922 87.5%, 0.999 93.75%, 1 100%);
+    --ov-back-out: linear(0 0%, 0.2347 4.17%, 0.4398 8.33%, 0.6172 12.5%, 0.7685 16.67%, 0.8955 20.83%, 1 25%, 1.0836 29.17%, 1.1481 33.33%, 1.1953 37.5%, 1.2269 41.67%, 1.2445 45.83%, 1.25 50%, 1.2451 54.17%, 1.2315 58.33%, 1.2109 62.5%, 1.1852 66.67%, 1.156 70.83%, 1.125 75%, 1.094 79.17%, 1.0648 83.33%, 1.0391 87.5%, 1.0185 91.67%, 1.0049 95.83%, 1 100%);
+  }
+
+  .ov-photo {
+    animation: ov-in-photo 3s var(--ov-power2-out) var(--ov-d, 0.1s) backwards;
+  }
+
+  .ov-photo-veil {
+    animation: ov-in-veil 3s var(--ov-power2-out) var(--ov-d, 0.1s) backwards;
+  }
+
+  .ov-nav {
+    animation: ov-in-nav 1.1s var(--ov-reveal) calc(var(--ov-d, 0.1s) + 0.1s) backwards;
+  }
+
+  .ov-eyebrow {
+    animation: ov-in-eyebrow 1.6s var(--ov-reveal) calc(var(--ov-d, 0.1s) + 0.15s) backwards;
+  }
+
+  /* Headline and lede rise out of masks, line by line (the lede as one block). */
+  .ov-line,
+  .ov-lede {
+    overflow: clip;
+  }
+
+  /* Room for descenders and overhanging glyphs inside the line masks; layout unchanged (as SplitText's
+     .split-line-mask in globals.css). */
+  .ov-line {
+    padding: 0.12em 0.08em;
+    margin: -0.12em -0.08em;
+  }
+
+  .ov-line > span,
+  .ov-lede > span {
+    display: block;
+  }
+
+  /* The lede keeps the exact layout it had with one SplitText mask per line (.split-line-mask: 0.12em
+     padding, -0.12em margins): 0.12em more between lines, and 0.12em more in all. */
+  .ov-lede > span {
+    margin-block: -0.12em;
+    padding-block: 0.06em;
+    line-height: calc(1.45em + 0.12em);
+  }
+
+  .ov-line > span {
+    animation: ov-in-line 1.4s var(--ov-reveal) calc(var(--ov-d, 0.1s) + 0.3s + var(--i, 0) * 0.13s) backwards;
+  }
+
+  .ov-lede > span {
+    animation: ov-in-lede 1.2s var(--ov-reveal) calc(var(--ov-d, 0.1s) + 0.65s) backwards;
+  }
+
+  [data-o-action] {
+    animation: ov-in-action 1.1s var(--ov-reveal) calc(var(--ov-d, 0.1s) + 0.95s + var(--i, 0) * 0.1s) backwards;
+  }
+
+  .ov-panel {
+    animation: ov-in-panel 1.5s var(--ov-reveal) calc(var(--ov-d, 0.1s) + 0.55s) backwards;
+  }
+
+  .ov-panel-head {
+    animation: ov-in-panel-head 1.1s var(--ov-reveal) calc(var(--ov-d, 0.1s) + 1s) backwards;
+  }
+
+  .ov-step {
+    animation: ov-in-step 1.1s var(--ov-reveal) calc(var(--ov-d, 0.1s) + 1.15s + var(--i, 0) * 0.12s) backwards;
+  }
+
+  .ov-chevrons {
+    animation: ov-in-chevron 0.8s var(--ov-reveal) calc(var(--ov-d, 0.1s) + 1.45s + var(--i, 0) * 0.12s) backwards;
+  }
+
+  /* Cards burst out of the tooth: each starts 72% of the way to the stage centre (cq units = stage). */
+  .ov-stage {
+    container-type: size;
+  }
+
+  .ov-card {
+    --bx: var(--ox);
+    --by: var(--oy);
+    animation: ov-in-card 1.4s var(--ov-expo-out) calc(var(--ov-d, 0.1s) + 1.45s + var(--i, 0) * 0.08s) backwards;
+  }
+
+  .ov-wire-glow,
+  .ov-wire {
+    animation: ov-in-wire 0.9s var(--ov-power2-in-out) calc(var(--ov-d, 0.1s) + 2.05s + var(--i, 0) * 0.07s) backwards;
+  }
+
+  .ov-wire-dot {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: ov-in-dot 0.5s var(--ov-back-out) calc(var(--ov-d, 0.1s) + 2.5s + var(--i, 0) * 0.05s) backwards;
+  }
+
+  /* On an inner box: GSAP's scroll timeline drives .ov-cue itself, and would otherwise read (and keep)
+     the intro's starting values if it set up while this ran. */
+  .ov-cue-in {
+    animation: ov-in-cue 1s var(--ov-reveal) calc(var(--ov-d, 0.1s) + 2.3s) backwards;
+  }
+}
+
+@keyframes ov-in-photo {
+  from {
+    scale: 1.14;
+  }
+}
+
+/* Lifting the veil (1 → 0 on the same curve) shows exactly what fading the photo in (0 → 1) showed. */
+@keyframes ov-in-veil {
+  from {
+    opacity: 1;
+  }
+}
+
+@keyframes ov-in-nav {
+  from {
+    opacity: 0;
+    translate: 0 -18px;
+  }
+}
+
+@keyframes ov-in-eyebrow {
+  from {
+    opacity: 0;
+    letter-spacing: 0.9em;
+  }
+}
+
+@keyframes ov-in-line {
+  from {
+    translate: 0 115%;
+  }
+}
+
+@keyframes ov-in-lede {
+  from {
+    translate: 0 110%;
+  }
+}
+
+@keyframes ov-in-action {
+  from {
+    opacity: 0;
+    translate: 0 26px;
+  }
+}
+
+@keyframes ov-in-panel {
+  from {
+    opacity: 0;
+    translate: 0 40%;
+  }
+}
+
+@keyframes ov-in-panel-head {
+  from {
+    opacity: 0;
+    translate: 0 18px;
+  }
+}
+
+@keyframes ov-in-step {
+  from {
+    opacity: 0;
+    translate: 0 28px;
+    scale: 0.9;
+  }
+}
+
+@keyframes ov-in-chevron {
+  from {
+    opacity: 0;
+    translate: -10px 0;
+  }
+}
+
+@keyframes ov-in-card {
+  from {
+    opacity: 0;
+    scale: 0.35;
+    translate: calc(var(--bx) * 1cqw) calc(var(--by) * 1cqh);
+    /* only while it runs: a lasting filter would switch off the cards' glass blur */
+    filter: blur(8px);
+  }
+}
+
+@keyframes ov-in-wire {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes ov-in-dot {
+  from {
+    scale: 0;
+  }
+}
+
+@keyframes ov-in-cue {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+}
+
+/* Shown in place of the live 3D scene when WebGL isn't available: a still of it, framed on the same
+   anchor box the scene's camera fits (rendered with the desktop canvas, whose anchor is 76.3% of its
+   height, centred 44.6% from its top). */
+.ov-still {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 0.4457 * 131.02%);
+  height: 131.02%;
+  width: auto;
+  max-width: none;
+  translate: -50% 0;
+  pointer-events: none;
+  user-select: none;
 }
 
 /* ---------------------------------------------------------------- motion */

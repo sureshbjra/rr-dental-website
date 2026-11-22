@@ -406,12 +406,8 @@ select:disabled,
 }
 
 /* ---------- Oravie page (styles live in src/components/oravie/oravie.css) ---------- */
-/* Intro targets that hold links start transparent, not hidden, so they stay focusable. */
+/* The intro (CSS, see oravie.css) fades links in; a keyboard user who reaches one early sees it at once. */
 @media (prefers-reduced-motion: no-preference) {
-  html.js:not(.anim-fallback) #oravie-page [data-o-fade] {
-    opacity: 0;
-  }
-
   #oravie-page [data-o-fade]:focus-within {
     opacity: 1 !important;
   }

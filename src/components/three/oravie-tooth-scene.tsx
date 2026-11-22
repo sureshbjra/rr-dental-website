@@ -1,27 +1,38 @@
 "use client";
 
-import { Environment, Lightformer, PerformanceMonitor, useGLTF } from "@react-three/drei";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { PerformanceMonitor } from "@react-three/drei";
+import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import {
   AdditiveBlending,
   BackSide,
   BufferAttribute,
   BufferGeometry,
   Color,
+  CubeCamera,
   DoubleSide,
+  HalfFloatType,
   MathUtils,
+  Mesh,
+  MeshBasicMaterial,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
   NeutralToneMapping,
+  PlaneGeometry,
   Plane,
+  RingGeometry,
+  Scene,
   ShaderMaterial,
   Vector3,
+  WebGLCubeRenderTarget,
   type Group,
-  type Mesh,
   type PerspectiveCamera,
 } from "three";
-import { TOOTH_MODEL_URL } from "@/config/models";
+// three's own glTF loader + meshopt decoder (drei's useGLTF also bundles the Draco loader, and drei's
+// <Environment> the HDR / EXR / gain-map loaders — none of which this scene uses).
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
+import { TOOTH_HERO_MODEL_URL } from "@/config/models";
 import { oravieState } from "@/components/oravie/oravie-state";
 
 /*
@@ -156,8 +167,12 @@ function makePulp() {
   return m;
 }
 
+const withMeshopt = (loader: GLTFLoader) => {
+  loader.setMeshoptDecoder(MeshoptDecoder);
+};
+
 function Tooth({ pointer }: { pointer: RefObject<{ x: number; y: number }> }) {
-  const { nodes } = useGLTF(TOOTH_MODEL_URL, false, true);
+  const { nodes } = useLoader(GLTFLoader, TOOTH_HERO_MODEL_URL, withMeshopt);
   const tooth = nodes.Tooth as Mesh;
   const pulpNode = nodes.Pulp as Mesh;
   const sc: [number, number, number] = [tooth.scale.x * CHUB[0], tooth.scale.y * CHUB[1], tooth.scale.z * CHUB[2]];
@@ -487,27 +502,101 @@ function Motes() {
   return <points geometry={geo} material={mat} position-y={PEDESTAL_TOP} />;
 }
 
-/** Cool clinical studio: a big white soft-box, cyan rims and a cyan bounce from the pedestal. */
+/*
+ * Cool clinical studio: a big white soft-box, cyan rims and a cyan bounce from the pedestal.
+ * The soft-boxes are emissive panels rendered once into a 256 px cube map that lights the scene — the
+ * same thing drei's <Environment> + <Lightformer> did, built from three.js core classes so the HDR /
+ * EXR / gain-map loaders that come with <Environment> stay out of the download.
+ */
+type Softbox = { form: "rect" | "circle" | "ring"; intensity: number; color: string; position: [number, number, number]; scale: number | [number, number, number] };
+
+const SOFTBOXES: Softbox[] = [
+  { form: "rect", intensity: 8, color: "#ffffff", position: [-3, 3.5, 3.5], scale: [5, 3, 1] },
+  { form: "circle", intensity: 10, color: "#ffffff", position: [2.2, 3.2, 3], scale: 1.2 },
+  { form: "rect", intensity: 3, color: "#ffffff", position: [0, 1, 5], scale: [6, 1.2, 1] },
+  { form: "rect", intensity: 3, color: "#e8f6ff", position: [2.5, 4.5, 2], scale: [3, 1, 1] },
+  { form: "rect", intensity: 4, color: "#3ec8ff", position: [4, 0.5, -2.5], scale: [1.5, 5, 1] },
+  { form: "rect", intensity: 5, color: "#2a7dff", position: [-4, 0, -2.5], scale: [1.5, 5, 1] },
+  { form: "rect", intensity: 1.5, color: "#e6f4ff", position: [2, 2, 5], scale: [3, 3, 1] },
+  // Every panel faces the tooth (the ring included: a lookAt replaced its x-rotation in the drei version).
+  { form: "ring", intensity: 2.5, color: "#46d0ff", position: [0, -2.5, 0.5], scale: 3 },
+];
+
+function StudioEnvironment() {
+  const get = useThree((s) => s.get);
+
+  useLayoutEffect(() => {
+    const { gl, scene } = get();
+    const room = new Scene();
+    room.background = new Color("#0b2549");
+    const disposables: { dispose: () => void }[] = [];
+    for (const box of SOFTBOXES) {
+      const geometry = box.form === "rect" ? new PlaneGeometry(1, 1) : box.form === "circle" ? new RingGeometry(0, 0.5, 64) : new RingGeometry(0.25, 0.5, 64);
+      const material = new MeshBasicMaterial({ toneMapped: false, side: DoubleSide });
+      material.color.set(box.color).multiplyScalar(box.intensity);
+      const panel = new Mesh(geometry, material);
+      panel.position.set(...box.position);
+      if (typeof box.scale === "number") panel.scale.setScalar(box.scale);
+      else panel.scale.set(...box.scale);
+      room.add(panel);
+      panel.lookAt(0, 0, 0);
+      disposables.push(geometry, material);
+    }
+
+    const target = new WebGLCubeRenderTarget(256);
+    target.texture.type = HalfFloatType;
+    const cubeCamera = new CubeCamera(0.1, 1000, target);
+    room.add(cubeCamera);
+    const autoClear = gl.autoClear;
+    gl.autoClear = true;
+    cubeCamera.update(gl, room);
+    gl.autoClear = autoClear;
+
+    const previous = scene.environment;
+    scene.environment = target.texture;
+    return () => {
+      scene.environment = previous;
+      target.dispose();
+      disposables.forEach((d) => d.dispose());
+    };
+  }, [get]);
+
+  return null;
+}
+
 function Studio() {
   return (
     <>
-      <Environment resolution={256} frames={1} background={false}>
-        <color attach="background" args={["#0b2549"]} />
-        <Lightformer form="rect" intensity={8} color="#ffffff" position={[-3, 3.5, 3.5]} scale={[5, 3, 1]} target={[0, 0, 0]} />
-        <Lightformer form="circle" intensity={10} color="#ffffff" position={[2.2, 3.2, 3]} scale={1.2} target={[0, 0, 0]} />
-        <Lightformer form="rect" intensity={3} color="#ffffff" position={[0, 1, 5]} scale={[6, 1.2, 1]} target={[0, 0, 0]} />
-        <Lightformer form="rect" intensity={3} color="#e8f6ff" position={[2.5, 4.5, 2]} scale={[3, 1, 1]} target={[0, 0, 0]} />
-        <Lightformer form="rect" intensity={4} color="#3ec8ff" position={[4, 0.5, -2.5]} scale={[1.5, 5, 1]} target={[0, 0, 0]} />
-        <Lightformer form="rect" intensity={5} color="#2a7dff" position={[-4, 0, -2.5]} scale={[1.5, 5, 1]} target={[0, 0, 0]} />
-        <Lightformer form="rect" intensity={1.5} color="#e6f4ff" position={[2, 2, 5]} scale={[3, 3, 1]} target={[0, 0, 0]} />
-        <Lightformer form="ring" intensity={2.5} color="#46d0ff" position={[0, -2.5, 0.5]} rotation-x={Math.PI / 2} scale={3} />
-      </Environment>
+      <StudioEnvironment />
       {/* Two real lights only (each one costs every lit pixel); the environment does the rest. */}
       <ambientLight intensity={0.22} color="#9fc9ff" />
       <directionalLight position={[-4, 5, 4]} intensity={3.6} color="#ffffff" />
       <directionalLight position={[4, 1.5, -3]} intensity={4.4} color="#46c8ff" />
     </>
   );
+}
+
+/**
+ * Compiles every shader program before the first frame is drawn — the cut-away materials that only
+ * appear halfway through the care journey included. With KHR_parallel_shader_compile (Chrome, Edge,
+ * Firefox, Safari 17+) the GPU driver compiles them in the background, so neither the reveal nor the
+ * scroll freezes while it works (Windows' Direct3D shader compiler can take hundreds of ms per program).
+ */
+function Precompile({ onDone }: { onDone: () => void }) {
+  const get = useThree((s) => s.get);
+
+  useEffect(() => {
+    let live = true;
+    const { gl, scene, camera } = get();
+    gl.compileAsync(scene, camera)
+      .catch(() => undefined)
+      .then(() => live && onDone());
+    return () => {
+      live = false;
+    };
+  }, [get, onDone]);
+
+  return null;
 }
 
 /*
@@ -551,6 +640,12 @@ function Rig({ anchor }: { anchor?: RefObject<HTMLElement | null> }) {
 
 function FirstFrame({ onReady }: { onReady?: () => void }) {
   const done = useRef(false);
+  const invalidate = useThree((s) => s.invalidate);
+  // Mounted once the shaders are ready, as the frame loop starts — make sure "demand" mode draws too.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => invalidate());
+    return () => cancelAnimationFrame(id);
+  }, [invalidate]);
   useFrame(() => {
     if (done.current) return;
     done.current = true;
@@ -567,6 +662,9 @@ export default function OravieToothScene({ onReady, anchor }: { onReady?: () => 
   // Resolution adapts to the device: start sharp, step down while the frame rate can't keep up.
   const [maxDpr] = useState(() => (typeof window === "undefined" ? 1.5 : Math.min(window.devicePixelRatio || 1, window.innerWidth < 768 ? 1.35 : 1.5)));
   const [dpr, setDpr] = useState(maxDpr);
+  // Nothing is drawn until every shader program has compiled (see Precompile).
+  const [compiled, setCompiled] = useState(false);
+  const onCompiled = useCallback(() => setCompiled(true), []);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -599,7 +697,7 @@ export default function OravieToothScene({ onReady, anchor }: { onReady?: () => 
       <Canvas
         camera={{ position: [0, CONTENT_CY, 11], fov: 30, near: 0.1, far: 60 }}
         dpr={dpr}
-        frameloop={!inView ? "never" : reduced ? "demand" : "always"}
+        frameloop={!compiled || !inView ? "never" : reduced ? "demand" : "always"}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance", toneMapping: NeutralToneMapping, toneMappingExposure: 1.12 }}
         onCreated={({ gl }) => {
           gl.localClippingEnabled = true;
@@ -619,11 +717,13 @@ export default function OravieToothScene({ onReady, anchor }: { onReady?: () => 
         <Motes />
         <Suspense fallback={null}>
           <Tooth pointer={pointer} />
-          <FirstFrame onReady={onReady} />
+          <Precompile onDone={onCompiled} />
+          {compiled && <FirstFrame onReady={onReady} />}
         </Suspense>
       </Canvas>
     </div>
   );
 }
 
-useGLTF.preload(TOOTH_MODEL_URL, false, true);
+// Starts the model download as soon as this chunk arrives (the page also preloads it from the HTML).
+useLoader.preload(GLTFLoader, TOOTH_HERO_MODEL_URL, withMeshopt);

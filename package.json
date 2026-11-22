@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "model:tooth": "node scripts/tooth/build-tooth.mjs"
+    "model:tooth": "node scripts/tooth/build-tooth.mjs && node scripts/tooth/slim-tooth.mjs",
+    "model:tooth-hero": "node scripts/tooth/slim-tooth.mjs"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",

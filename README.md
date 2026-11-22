@@ -18,7 +18,8 @@ npm run dev        # http://localhost:3000
 | `npm run build` / `npm start` | Production build / server |
 | `npm run lint` | ESLint |
 | `npx tsc --noEmit` | Type check |
-| `npm run model:tooth` | Regenerate `public/models/tooth.glb` |
+| `npm run model:tooth` | Regenerate `public/models/tooth.glb` (and the home hero's slim copy, `tooth-hero.glb`) |
+| `npm run model:tooth-hero` | Regenerate only `public/models/tooth-hero.glb` from `tooth.glb` |
 
 ## Publishing (GitHub Pages)
 
@@ -164,11 +165,30 @@ look sharper than screenshots.
 Homepage copy lives in `src/config/content.ts` — it is placeholder text; confirm treatments and
 technology with the clinic.
 
+## Home page loading
+
+- The hero's opening sequence (photo, menu, headline, cards, wires, journey panel) is CSS
+  (`oravie.css`, "intro"), so it plays from the first paint instead of waiting for the page's JavaScript.
+  GSAP only drives the scroll journey; pinned elements use their existing wrapper as the pin-spacer so
+  pinning never moves them (moving an element restarts its CSS animations).
+- `tooth-hero.glb` (`scripts/tooth/slim-tooth.mjs`) is `tooth.glb` with only positions, normals and
+  indices — the hero paints the tooth with its own shaders — and is preloaded from the HTML at low
+  priority, in parallel with the scripts.
+- The 3D code is fetched as soon as the page module runs, uses three's own GLTFLoader + meshopt decoder
+  and a cube-camera studio environment (drei's `<Environment>` / `useGLTF` pull in HDR, EXR, gain-map
+  and Draco loaders), and compiles every shader with `compileAsync` before the first frame, so the
+  reveal and the cross-section stage don't stall on shader compilation.
+- Without WebGL 2, with software-only WebGL (no GPU / GPU blocked — `failIfMajorPerformanceCaveat`), or
+  if the scene fails to load, the hero shows `public/images/oravie/tooth-scene.webp`, a still of the
+  scene, instead of crashing the page or rendering at a few frames per second. Note this includes
+  headless test browsers (Lighthouse, PageSpeed Insights): they measure the still, not the live scene.
+
 ## Notes
 
-- Fonts are self-hosted: Archivo's Latin subset goes through `next/font/local` (preloaded, so the hero
-  headline doesn't re-wrap after load); other subsets (latin-ext, e.g. ₹) load on demand from
-  `@fontsource-variable/archivo`. No build-time Google Fonts fetch.
+- Fonts are self-hosted: Archivo's Latin subset goes through `next/font/local` (preloaded, so headlines
+  don't re-wrap after load), with its width axis trimmed to the 100–125 % the site uses
+  (`scripts/fonts/instance-archivo.py`, 61 KB instead of 90 KB); other subsets (latin-ext, e.g. ₹) load
+  on demand from `@fontsource-variable/archivo`. No build-time Google Fonts fetch.
 - Dev only: `window.__rrGsap` (gsap + ScrollTrigger) and `window.__rrGL` (the renderer) for debugging.
 - Known console warning: `THREE.Clock … deprecated` comes from inside React Three Fiber 9.x (latest);
   harmless, and it will go away when R3F switches to `THREE.Timer`.
