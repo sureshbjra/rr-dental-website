@@ -90,11 +90,12 @@ export function ProcessSection() {
                   style={{ background: STEP_TINTS[i] ?? STEP_TINTS[0] }}
                 >
                   <div data-step-shade aria-hidden className="pointer-events-none absolute inset-0 bg-[#020c1e] opacity-0" />
-                  <div className="relative grid gap-6 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-10">
+                  {/* Phones: number and tooth side by side, text below. Wider: number · text · tooth. */}
+                  <div className="relative grid grid-cols-[auto_1fr] gap-6 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-10">
                     <p aria-hidden className="tabular self-start text-[clamp(3.5rem,7vw,6rem)] leading-[0.85] font-extrabold tracking-[-0.05em] text-[#22c6f6] [text-shadow:0_0_28px_rgb(34_198_246/0.45)]">
                       {i + 1}
                     </p>
-                    <div className="sm:pt-2">
+                    <div className="col-span-2 sm:col-span-1 sm:pt-2">
                       <h3 className="text-display-m font-bold text-white">
                         <span className="sr-only">Step {i + 1}: </span>
                         {step.title}
@@ -134,7 +135,7 @@ function StepIcon({ index }: { index: number }) {
   const name = STEP_ICONS[index];
   if (!name) return null;
   return (
-    <div aria-hidden className="relative hidden h-24 w-28 shrink-0 items-end justify-center sm:flex lg:h-28 lg:w-32">
+    <div aria-hidden className="relative col-start-2 row-start-1 mr-2 mb-3 flex h-24 w-28 shrink-0 items-end justify-center justify-self-end sm:col-start-auto sm:row-start-auto sm:mr-0 sm:mb-0 sm:justify-self-auto lg:h-28 lg:w-32">
       <span className="absolute bottom-0 left-1/2 h-6 w-28 -translate-x-1/2 translate-y-1/2 rounded-[50%] border-2 border-[rgb(80_210_255/0.95)] [background:radial-gradient(ellipse_at_50%_50%,rgb(56_189_248/0.55),rgb(20_90_180/0.2)_55%,transparent_72%)] shadow-[0_0_18px_rgb(56_189_248/0.75),inset_0_0_12px_rgb(120_220_255/0.6)] lg:w-32" />
       {/* eslint-disable-next-line @next/next/no-img-element -- static export, pre-rendered icon */}
       <img
